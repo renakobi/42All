@@ -1,0 +1,12 @@
+ft_split.c
+ft_split.o
+main.c
+main.o
+Makefile
+outfile
+pipex
+pipex.h
+process.c
+process.o
+utils.c
+utils.o
