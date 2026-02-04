@@ -1,0 +1,37 @@
+static int	ft_check(const char *set, char c)
+{
+	int	i;
+
+	i = 0;
+	while (set[i])
+	{
+		if (set[i] == c)
+			return (0);
+		i++;
+	}
+	return (1);
+}
+
+char	*ft_strtrim(char const *s1, char const *set)
+{
+	int		count;
+	int		i;
+	int		j;
+	char	*str;
+
+	count = 0;
+	i = 0;
+	j = 0;
+	if (!s1 || !set)
+		return (NULL);
+	str = (char *)malloc((ft_strlen(s1) + 1) * (sizeof(char)));
+	if (!str)
+		return (NULL);
+	while (s1[i])
+	{
+		if (ft_check(set, s1[i]) == 1)
+			str[j++] = s1[i];
+		i++;
+	}
+	return (str);
+}
