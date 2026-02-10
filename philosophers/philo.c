@@ -6,104 +6,141 @@
 /*   By: rkobeiss <rkobeiss@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 19:53:46 by rkobeiss          #+#    #+#             */
-/*   Updated: 2026/01/29 21:41:23 by rkobeiss         ###   ########.fr       */
+/*   Updated: 2026/02/10 16:16:51 by rkobeiss         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
-//add timestamps for eat sleep and think
+
 void	ft_sleep(long time)
 {
-	usleep(time);
+	usleep(time * 1000);
 }
 
 void	philo_lock(t_philo *philo)
 {
-		printf("entered philo_lock\n");
 	if (philo->id % 2 != 0)
-	{
+	{			
 		pthread_mutex_lock(philo->l_fork);
-		ft_sleep(200);
+		print_state(philo->data, philo->id, "has taken a fork");
+		ft_sleep(1);
 		pthread_mutex_lock(philo->r_fork);
+		print_state(philo->data, philo->id, "has taken a fork");
 	}
 	else
 	{
 		pthread_mutex_lock(philo->r_fork);
-		ft_sleep(200);
+		print_state(philo->data, philo->id, "has taken a fork");
+		ft_sleep(1);
 		pthread_mutex_lock(philo->l_fork);
+		print_state(philo->data, philo->id, "has taken a fork");
 	}
 }
 
-void	philo_think(void *args)
+void	*philo_think(void *args)
 {
-		printf("entered philo_think\n");
 	t_philo			*philo;
-	int				ttt;
+	long			ttt;
 	struct timeval	time;
 
 	philo = (t_philo *)args;
-	ttt = philo->data.ttd - philo->data.tts;
-	gettimeofday(&time, NULL);
-	pthread_mutex_lock(&philo->data.print_msg);
-	printf("%ld %d is thinking\n",
-		get_time() - philo->data.start, philo->id);
-	pthread_mutex_unlock(&philo->data.print_msg);
-	ft_sleep(ttt * 1000);
-}
-
-void	philo_eat_sleep(void *args)
-{
-	printf("entered philo_eat_sleep\n");
-	t_philo			*philo;
-	struct timeval	time;
-
-	philo = (t_philo *)args;
-	while (!philo->data.death)
+	if (!check_death(philo))
 	{
-		//if (check_death(philo))
-		//	break ;
-		//FIGURE THIS PART OUT!!!!!!!!!
-		philo_lock(philo);
-		printf("entered philo_eat_sleep2\n");
-		pthread_mutex_lock(&philo->data.print_msg);
+		ttt = (philo->data->tte / 2);
+		if (ttt < 0)
+			ttt = 0;
 		gettimeofday(&time, NULL);
-		printf("%ld %d is eating\n", get_time() - philo->data.start,
-			philo->id);
-		pthread_mutex_unlock(&philo->data.print_msg);
-		philo->lm = get_time();
-		ft_sleep(philo->data.tte * 1000);
-		pthread_mutex_unlock(philo->l_fork);
-		pthread_mutex_unlock(philo->r_fork);
-		pthread_mutex_lock(&philo->data.print_msg);
-		printf("%ld %d is sleeping\n", get_time() - philo->data.start,
-			philo->id);
-		pthread_mutex_unlock(&philo->data.print_msg);
-		ft_sleep(philo->data.tts * 1000);
-		philo_think(philo);
-	}
-}
-
-void	*p_death(void *args)
-{
-	printf("entered philo_death\n");
-	t_philo	*philo;
-	int		i;
-
-	philo = (t_philo *)args;
-	while (!philo->data.death)
-	{
-		i = 0;
-		while (i < philo->data.n_philo)
-		{
-			if (get_time() - philo[i].lm > philo->data.ttd)
-			{
-				check_death(philo + i);
-				return (NULL);
-			}
-			i++;
-		}
-		ft_sleep(500);
+		print_state(philo->data, philo->id, "is thinking");
+		ft_sleep(ttt);
 		return (NULL);
 	}
 	return (NULL);
+}
+
+void	*philo_eat_sleep(void *args)
+{
+	t_philo			*philo;
+
+	philo = (t_philo *)args;
+	if (philo->data->n_philo == 1)
+	{
+		pthread_mutex_lock(philo->l_fork);
+		print_state(philo->data, philo->id, "has taken a fork");
+		while (!check_death(philo))
+			ft_sleep(1);
+		pthread_mutex_unlock(philo->l_fork);
+		return (NULL);
+	}
+	while (!check_death(philo))
+	{
+		pthread_mutex_lock(&philo->data->dead_msg);
+		if (philo->data->death)
+		{
+			pthread_mutex_unlock(&philo->data->dead_msg);
+			break ;
+		}
+		pthread_mutex_unlock(&philo->data->dead_msg);
+		philo_lock(philo);
+		ft_sleep(1);
+		print_state(philo->data, philo->id, "is eating");
+		pthread_mutex_lock(&philo->data->dead_msg);
+		philo->lm = get_time();
+		pthread_mutex_unlock(&philo->data->dead_msg);
+		ft_sleep(philo->data->tte);
+		pthread_mutex_unlock(philo->l_fork);
+		pthread_mutex_unlock(philo->r_fork);
+		philo->n_meals += 1;
+		if (philo->data->meals != -1 && !philo->done
+			&& philo->n_meals >= philo->data->meals)
+		{
+			philo->done = 1;
+			pthread_mutex_lock(&philo->data->finish);
+			philo->data->fin += 1;
+			if (philo->data->fin == philo->data->n_philo)
+			{
+				pthread_mutex_lock(&philo->data->dead_msg);
+				philo->data->death = 1;
+				pthread_mutex_unlock(&philo->data->dead_msg);
+			}
+			pthread_mutex_unlock(&philo->data->finish);
+		}
+		print_state(philo->data, philo->id, "is sleeping");
+		ft_sleep(philo->data->tts);
+		philo_think(philo);
+	}
+	return (NULL);
+}
+
+void	*p_death(void *arg)
+{
+	t_philo	*philo;
+	int		i;
+
+	philo = (t_philo *)arg;
+	while (1)
+	{
+		i = 0;
+		while (i < philo->data->n_philo)
+		{
+			pthread_mutex_lock(&philo->data->dead_msg);
+			if (philo->data->death)
+			{
+				pthread_mutex_unlock(&philo->data->dead_msg);
+				return (NULL);
+			}
+			if ((get_time() - philo[i].lm) >= philo->data->ttd)
+			{
+				philo->data->death = 1;
+				pthread_mutex_unlock(&philo->data->dead_msg);
+				pthread_mutex_lock(&philo->data->print_msg);
+				printf("%ld %d died\n",
+					get_time() - philo->data->start, philo[i].id);
+				pthread_mutex_unlock(&philo->data->print_msg);
+				return (NULL);
+			}
+			pthread_mutex_unlock(&philo->data->dead_msg);
+			i++;
+		}
+		usleep(10);
+	}
 }

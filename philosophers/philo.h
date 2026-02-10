@@ -6,7 +6,7 @@
 /*   By: rkobeiss <rkobeiss@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/26 17:31:43 by rkobeiss          #+#    #+#             */
-/*   Updated: 2025/10/30 20:15:10 by rkobeiss         ###   ########.fr       */
+/*   Updated: 2026/02/10 16:24:18 by rkobeiss         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,25 +22,28 @@
 typedef struct s_data
 {
 	int				n_philo;
+	int				meals;
+	int				death;
+	int				fin;
 	long			tte;
 	long			ttd;
 	long			tts;
 	long			start;
-	int				meals;
-	int				death;
 	pthread_mutex_t	*fork;
 	pthread_mutex_t	print_msg;
 	pthread_mutex_t	dead_msg;
+	pthread_mutex_t	finish;
 }t_data;
 typedef struct s_philo
 {
 	int				id;
 	int				n_meals;
-	int				lm;
+	int				done;
+	long			lm;
 	pthread_t		thread;
 	pthread_mutex_t	*l_fork;
 	pthread_mutex_t	*r_fork;
-	t_data			data;
+	t_data			*data;
 }t_philo;
 
 typedef struct s_timevalue
@@ -49,7 +52,14 @@ typedef struct s_timevalue
 	suseconds_t	tv_usec;
 }	t_timevalue;
 
-void	philo_eat_sleep(void *args);
+void	*philo_eat_sleep(void *args);
 long	get_time(void);
 int		check_death(t_philo *philo);
+void	*p_death(void *args);
+void	*philo_think(void *args);
+void	print_state(t_data *d, int id, const char *msg);
+void	*single_philo_case(void *args);
+void	meals_reached(void *args);
+void	ft_sleep(long time);
+void	*ft_memset(void *s, int c, int n);
 #endif
