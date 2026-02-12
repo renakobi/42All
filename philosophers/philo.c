@@ -6,7 +6,7 @@
 /*   By: rkobeiss <rkobeiss@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/10 19:53:46 by rkobeiss          #+#    #+#             */
-/*   Updated: 2026/02/10 16:16:51 by rkobeiss         ###   ########.fr       */
+/*   Updated: 2026/02/12 19:56:41 by rkobeiss         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,15 +62,8 @@ void	*philo_eat_sleep(void *args)
 	t_philo			*philo;
 
 	philo = (t_philo *)args;
-	if (philo->data->n_philo == 1)
-	{
-		pthread_mutex_lock(philo->l_fork);
-		print_state(philo->data, philo->id, "has taken a fork");
-		while (!check_death(philo))
-			ft_sleep(1);
-		pthread_mutex_unlock(philo->l_fork);
+	if (single_philo_case(philo))
 		return (NULL);
-	}
 	while (!check_death(philo))
 	{
 		pthread_mutex_lock(&philo->data->dead_msg);
@@ -80,30 +73,9 @@ void	*philo_eat_sleep(void *args)
 			break ;
 		}
 		pthread_mutex_unlock(&philo->data->dead_msg);
-		philo_lock(philo);
-		ft_sleep(1);
-		print_state(philo->data, philo->id, "is eating");
-		pthread_mutex_lock(&philo->data->dead_msg);
-		philo->lm = get_time();
-		pthread_mutex_unlock(&philo->data->dead_msg);
-		ft_sleep(philo->data->tte);
-		pthread_mutex_unlock(philo->l_fork);
-		pthread_mutex_unlock(philo->r_fork);
+		philo_eat(philo);
 		philo->n_meals += 1;
-		if (philo->data->meals != -1 && !philo->done
-			&& philo->n_meals >= philo->data->meals)
-		{
-			philo->done = 1;
-			pthread_mutex_lock(&philo->data->finish);
-			philo->data->fin += 1;
-			if (philo->data->fin == philo->data->n_philo)
-			{
-				pthread_mutex_lock(&philo->data->dead_msg);
-				philo->data->death = 1;
-				pthread_mutex_unlock(&philo->data->dead_msg);
-			}
-			pthread_mutex_unlock(&philo->data->finish);
-		}
+		meals_reached(philo);
 		print_state(philo->data, philo->id, "is sleeping");
 		ft_sleep(philo->data->tts);
 		philo_think(philo);
@@ -128,16 +100,8 @@ void	*p_death(void *arg)
 				pthread_mutex_unlock(&philo->data->dead_msg);
 				return (NULL);
 			}
-			if ((get_time() - philo[i].lm) >= philo->data->ttd)
-			{
-				philo->data->death = 1;
-				pthread_mutex_unlock(&philo->data->dead_msg);
-				pthread_mutex_lock(&philo->data->print_msg);
-				printf("%ld %d died\n",
-					get_time() - philo->data->start, philo[i].id);
-				pthread_mutex_unlock(&philo->data->print_msg);
+			if (set_death(philo, i))
 				return (NULL);
-			}
 			pthread_mutex_unlock(&philo->data->dead_msg);
 			i++;
 		}

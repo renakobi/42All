@@ -6,7 +6,7 @@
 /*   By: rkobeiss <rkobeiss@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/26 17:40:13 by rkobeiss          #+#    #+#             */
-/*   Updated: 2026/02/10 16:33:26 by rkobeiss         ###   ########.fr       */
+/*   Updated: 2026/02/12 20:04:15 by rkobeiss         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,32 +80,23 @@ int	main(int ac, char **av)
 	int				i;
 
 	i = 0;
-	if (ac == 5 || ac == 6)
-	{
-		data = malloc(sizeof(t_data));
-		if (!data)
-			return (1);
-		memset(data, 0, sizeof(t_data));
-		gettimeofday(&tv, NULL);
-		data->start = get_time();
-		set_data(av, data);
-		data->fork = malloc(sizeof(pthread_mutex_t) * data->n_philo);
-		pthread_mutex_init(&data->print_msg, NULL);
-		pthread_mutex_init(&data->dead_msg, NULL);
-		while (i < data->n_philo)
-			pthread_mutex_init(&data->fork[i++], NULL);
-		philo = malloc(sizeof(t_philo) * data->n_philo);
-		if (!philo)
-			return (1);
-		memset(philo, 0, sizeof(t_philo) * data->n_philo);
-		data_init(philo, data);
-		create(philo, *data);
-		i = 0;
-		while (i < data->n_philo)
-			pthread_mutex_destroy(&data->fork[i++]);
-		pthread_mutex_destroy(&data->print_msg);
-		pthread_mutex_destroy(&data->dead_msg);
-		free_philo(*data, philo);
-		free(data);
-	}
+	if (ac != 5 && ac != 6)
+		return (1);
+	data = malloc(sizeof(t_data));
+	gettimeofday(&tv, NULL);
+	if (more_init(av, i, data))
+		return (1);
+	philo = malloc(sizeof(t_philo) * data->n_philo);
+	if (!philo)
+		return (1);
+	memset(philo, 0, sizeof(t_philo) * data->n_philo);
+	data_init(philo, data);
+	create(philo, *data);
+	i = 0;
+	while (i < data->n_philo)
+		pthread_mutex_destroy(&data->fork[i++]);
+	pthread_mutex_destroy(&data->print_msg);
+	pthread_mutex_destroy(&data->dead_msg);
+	free_philo(*data, philo);
+	free(data);
 }
